@@ -2,14 +2,20 @@ package main
 
 import (
 	"log/slog"
+	"net/http"
 	"os"
+	"strconv"
 
 	"url-shortener/internal/config"
 	"url-shortener/internal/storage/sqlite"
 
-	sl "url-shortener/internal/lib/logger/slog"
+	"url-shortener/internal/http-server/handlers/url/save"
+	mwLogger "url-shortener/internal/http-server/middleware/logger"
+	"url-shortener/internal/lib/logger/sl"
 
 	"github.com/MatusOllah/slogcolor"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 const (
@@ -25,15 +31,37 @@ func main() {
 	log.Info("Starting url-shortener service")
 	log.Debug("debug messages enabled", slog.String("env", cfg.Env))
 
-	_, err := sqlite.New(cfg.StoragePath)
+	storage, err := sqlite.New(cfg.StoragePath)
 	if err != nil {
 		log.Error("failed to initialize storage", sl.Err(err))
 		os.Exit(1)
 	}
 
-	// TODO: init router: chi, "chi render"
+	router := chi.NewRouter()
 
-	// TODO: run server
+	router.Use(middleware.RequestID)
+	router.Use(middleware.RealIP)
+	router.Use(mwLogger.New(log))
+	router.Use(middleware.Recoverer)
+	router.Use(middleware.URLFormat)
+
+	router.Post("/url", save.New(log, storage))
+
+	log.Info("starting server", slog.String("host", cfg.HTTPServer.Host))
+
+	server := &http.Server{
+		Addr:         cfg.HTTPServer.Host + ":" + strconv.Itoa(cfg.HTTPServer.Port),
+		Handler:      router,
+		ReadTimeout:  cfg.HTTPServer.Timeout,
+		WriteTimeout: cfg.HTTPServer.Timeout,
+		IdleTimeout:  cfg.HTTPServer.IdleTimeout,
+	}
+
+	if err := server.ListenAndServe(); err != nil {
+		log.Error("failed to start server", sl.Err(err))
+	}
+
+	log.Error("service stopped")
 }
 
 func setupLogger(env string) *slog.Logger {
