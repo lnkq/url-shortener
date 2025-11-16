@@ -25,15 +25,14 @@ func main() {
 	log.Info("Starting url-shortener service")
 	log.Debug("debug messages enabled", slog.String("env", cfg.Env))
 
-	storage, err := sqlite.New(cfg.StoragePath)
+	_, err := sqlite.New(cfg.StoragePath)
 	if err != nil {
 		log.Error("failed to initialize storage", sl.Err(err))
 		os.Exit(1)
 	}
 
-	_ = storage // TODO: use storage
-
 	// TODO: init router: chi, "chi render"
+
 	// TODO: run server
 }
 
