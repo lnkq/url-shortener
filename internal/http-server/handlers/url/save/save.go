@@ -10,6 +10,7 @@ import (
 	resp "url-shortener/internal/pkg/api/response"
 	"url-shortener/internal/storage"
 
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 )
@@ -35,11 +36,10 @@ func New(log *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.url.save.New"
 
-		// TODO FIXME
-		// log = log.With(
-		// 	slog.String("op", op),
-		// 	slog.String("request_id", middleware.GetReqID(r.Context())),
-		// )
+		log := log.With(
+			slog.String("op", op),
+			slog.String("request_id", middleware.GetReqID(r.Context())),
+		)
 
 		var req Request
 		err := render.DecodeJSON(r.Body, &req)
