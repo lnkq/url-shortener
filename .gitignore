@@ -34,7 +34,3 @@ go.work.sum
 # Databases
 *.db
 *.sqlite3
-
-# Config files
-config/*.yaml
-!config/local.yaml
